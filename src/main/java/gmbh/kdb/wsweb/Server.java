@@ -1,6 +1,9 @@
 package gmbh.kdb.wsweb;
 
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.PrintWriter;
 import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -21,9 +24,35 @@ public class Server implements Runnable {
         this.nodes = nodes;
     }
 
+    public static void main(String[] args) {
+        String[] hosts = null;
+
+        if (args.length > 0) {
+            hosts = args[0].split(",");
+
+            System.out.println("Using the followings cluster hosts:");
+            Arrays.stream(hosts).forEach(System.out::println);
+        } else {
+            System.out.println("Running in standalone mode");
+        }
+
+        try (var sock = new ServerSocket(37766)) {
+
+            System.out.println("Server is running on port 37766");
+
+            while (true) {
+                var server = new Server(sock.accept(), hosts);
+                new Thread(server).start();
+            }
+
+        } catch (Exception err) {
+            System.err.printf("Server failed = %s", err.getMessage());
+        }
+    }
+
     @Override
     public void run() {
-        try(var in = new BufferedReader(new InputStreamReader(this.request.getInputStream()))) {
+        try (var in = new BufferedReader(new InputStreamReader(this.request.getInputStream()))) {
             var out = new PrintWriter(this.request.getOutputStream());
 
             // Parse the header
@@ -40,14 +69,14 @@ public class Server implements Runnable {
 
             this.printHostInformation(out);
 
-            if(!path.equals("/single") && null != this.nodes && this.nodes.length > 0) {
+            if (!path.equals("/single") && null != this.nodes && this.nodes.length > 0) {
                 out.println();
                 this.printNodeInformation(out);
             }
 
             out.flush();
 
-        } catch(Exception e) {
+        } catch (Exception e) {
             System.err.printf("Error = %s\n", e.getMessage());
         }
     }
@@ -55,25 +84,25 @@ public class Server implements Runnable {
     protected void printNodeInformation(PrintWriter out) throws Exception {
 
         Arrays.stream(this.nodes)
-                    .forEach(node -> {
-                        var addr = "http://" + node + ":37766/single";
+                .forEach(node -> {
+                    var addr = "http://" + node + ":37766/single";
 
-                        System.out.printf("Requesting %s ...\n", addr);
+                    System.out.printf("Requesting %s ...\n", addr);
 
-                        try {
-                            var client = HttpClient.newHttpClient();
-                            var req = HttpRequest.newBuilder(
-                                    URI.create(addr)
-                            ).build();
+                    try {
+                        var client = HttpClient.newHttpClient();
+                        var req = HttpRequest.newBuilder(
+                                URI.create(addr)
+                        ).build();
 
-                            var res = client.send(req, HttpResponse.BodyHandlers.ofString());
+                        var res = client.send(req, HttpResponse.BodyHandlers.ofString());
 
-                            out.printf("Node %s:\n%s\n", node, res.body());
+                        out.printf("Node %s:\n%s\n", node, res.body());
 
-                        } catch(Exception ex) {
-                            System.err.printf("Failed to request %s", addr);
-                        }
-                    });
+                    } catch (Exception ex) {
+                        System.err.printf("Failed to request %s", addr);
+                    }
+                });
 
     }
 
@@ -82,32 +111,6 @@ public class Server implements Runnable {
 
         body.printf("Host name: %s\n", localhost.getHostName());
         body.printf("Host address: %s\n", localhost.getHostAddress());
-    }
-
-    public static void main(String[] args) {
-        String[] hosts = null;
-
-        if(args.length > 0) {
-            hosts = args[0].split(",");
-
-            System.out.println("Using the followings cluster hosts:");
-            Arrays.stream(hosts).forEach(System.out::println);
-        } else {
-            System.out.println("Running in standalone mode");
-        }
-
-        try(var sock = new ServerSocket(37766)) {
-
-            System.out.println("Server is running on port 37766");
-
-            while(true) {
-                var server = new Server(sock.accept(), hosts);
-                new Thread(server).start();
-            }
-
-        } catch(Exception err) {
-            System.err.printf("Server failed = %s", err.getMessage());
-        }
     }
 
 }

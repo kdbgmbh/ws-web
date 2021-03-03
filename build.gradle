@@ -1,0 +1,17 @@
+plugins {
+    id 'java'
+    id 'application'
+}
+
+group 'gmbh.kdb'
+version '1.0-SNAPSHOT'
+
+application {
+    mainClass = 'gmbh.kdb.wsweb.Server'
+}
+
+jar {
+    manifest {
+        attributes "Main-Class": "gmbh.kdb.wsweb.Server"
+    }
+}

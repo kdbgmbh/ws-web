@@ -19,3 +19,7 @@ docker run ws-web ws-web-node1,ws-web-node-2
 
 - `/` prints information about the current host and other configured hosts
 - `/single` prints information about the current host only
+
+## Docker
+
+Docker image at [dak0rn/ws-web](https://hub.docker.com/r/dak0rn/ws-web).
